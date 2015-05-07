@@ -2,8 +2,13 @@ import argparse
 import os
 import re
 
-# find all files with '.cat' in their name and make 1 big csv file.
-def make_big_file_from_list(sOutputFileName, lFileList):
+
+# This program takes NGVS .cat files (fixed-width tablular data with a bunch of
+# header lines we don't care about) and turns them into a single comma-delimited
+# CSV file.
+
+# Takes a list of names of NGVS files in CWD and writes content to 1 big csv file.
+def make_csv_file_from_file_list(sOutputFileName, lFileList):
 
 	# helper function to convert fixed-width line to csv line.
 	def convert_fw_line_to_csv(sLine):
@@ -12,10 +17,11 @@ def make_big_file_from_list(sOutputFileName, lFileList):
 		sNewCSVLine = spaces_regex.subn(',', sLine.strip())[0]
 		return sNewCSVLine
 
-	# first, get the header data just once.
+	# Get the column definitions once, from the first NGVS file.
+	# Each NGVS file has an identical copy of these column defs.
 	with open(lFileList[0]) as f_in:
 
-		# collect column definitions
+		# collect column definitions.
 		sCurrentLine = f_in.readline()
 		oColumnNameRegex = re.compile('#[" "]+([^" "]+)[" "]+([^" "]+)[" "]*')
 		lColumnNames = []
@@ -23,14 +29,22 @@ def make_big_file_from_list(sOutputFileName, lFileList):
 			lColumnNames.append(oColumnNameRegex.search(sCurrentLine).group(2))
 			sCurrentLine = f_in.readline()
 
+		# add our own, single column.
+		lColumnNames.append('source_file')
+
 		sHeaderCSVline = '{}\n'.format(','.join(lColumnNames))
 
-	# open the output file.
+	# open the single output file (the CSV).
 	with open(sOutputFileName, 'w') as f_out:
 		# write the header line.
 		f_out.write('{}\n'.format(sHeaderCSVline.strip()))
 
+
+		# read through all .cat files, copying their data.
 		for sFile in lFileList:
+			print '> Reading from {}'.format(sFile)
+
+			short_filename = os.path.basename(sFile)
 			with open(sFile, 'r') as f_in:
 				sCurrentLine = f_in.readline()
 
@@ -40,59 +54,34 @@ def make_big_file_from_list(sOutputFileName, lFileList):
 				
 				# run through rest of rows, copy each to output file.
 				while not sCurrentLine == '':
-					f_out.write('{}\n'.format(convert_fw_line_to_csv(sCurrentLine)))
+					# Also, notice here that the final column value is the name of current input
+					# file. This matches up with 'source_file' column, added above.
+					f_out.write('{},{}\n'.format(convert_fw_line_to_csv(sCurrentLine), short_filename))
 					sCurrentLine = f_in.readline()
 
-# Within the specified 'operating_directory', finds all files with '.cat' in their
+	print '> Created "{}"'.format(sOutputFileName)	
+
+
+
+# Within the specified 'source_directory', finds all files with '.cat' in their
 # name and combines their data into one big CSV file.
-def run_on_file_list(operating_directory, sOutputName):
-	lAllFiles = os.listdir(operating_directory)
-	l_csv_files = [os.path.join(operating_directory, sFile) for 
-		sFile in lAllFiles if sFile.find('.cat?') != -1]
-	make_big_file_from_list(os.path.join(operating_directory, sOutputName), l_csv_files)
-	print 'finished.'	
+def convert_all_cats_in_dir(output_filename, source_directory=None):
+	if not source_directory:
+		source_directory = os.getcwd()
+	lAllFiles = os.listdir(source_directory)
+	l_cat_files = [os.path.join(source_directory, sFile) for 
+		sFile in lAllFiles if sFile.find('.cat') != -1]
+	print '> found {} .cat files in {} ...'.format(len(l_cat_files), source_directory)
+	make_csv_file_from_file_list(os.path.join(source_directory, output_filename), l_cat_files)
 		
-		
-# run on single, specified file. currently this function is not in use.
-def main_func(sFileName):
-
-	# open input file.
-	with open(sFileName, 'r') as f_in:
-		sCurrentLine = f_in.readline()
-
-		# collect column definitions
-		lColumnNames = []
-		oColumnNameRegex = re.compile('#[" "]+([^" "]+)[" "]+([^" "]+)[" "]*')
-		while sCurrentLine[0] == '#':
-			lColumnNames.append(oColumnNameRegex.search(sCurrentLine).group(2))
-			sCurrentLine = f_in.readline()
-
-		# open output file
-		if sFileName.find('.csv') == -1:
-			raise BaseException("Filename needs '.csv' at the end")
-		sOutputCSV = sFileName[:sFileName.find('.csv')] + '_topcat.csv'
-		with open(sOutputCSV, 'w') as f_out:
-
-			# write a header line
-			f_out.write('{}\n'.format(','.join(lColumnNames)))
-	
-			spaces_regex = re.compile('[\s]+')
-			while not sCurrentLine == '':
-				# replace each section of contiguous spaces with a comma. 
-				sNewCSVLine = spaces_regex.subn(',', sCurrentLine.strip())[0]
-				f_out.write('{}\n'.format(sNewCSVLine))
-				sCurrentLine = f_in.readline()
-			print 'finished.'
-
-
 
 if __name__ == "__main__":
 	# Get commandline arguments.
 	parser = argparse.ArgumentParser(description='description')
-	parser.add_argument('directory', metavar='d', type=str,
-                   help='directory')
-	parser.add_argument('filename', metavar='f', type=str,
-                   help='filename')
+	parser.add_argument('--csv_output_filename', '-f', type=str,
+                   help='output CSV filename')
+	parser.add_argument('--source_directory', '-d', type=str,
+                   help='directory of NGVS .cat files')
 	args = parser.parse_args()
   # Call main function.
-	run_on_file_list(args.directory, args.filename)
+	convert_all_cats_in_dir(source_directory=args.source_directory, output_filename=args.csv_output_filename)
