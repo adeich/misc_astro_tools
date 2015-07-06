@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
 # generate a local webpage for allowing visual inspection of thumbnails.
-def generate_webpage_of_results(rec_array, filename):
+def make_thumbnail_webpage(rec_array, filename):
 
 	def make_DR7_a_tag(ra, dec):
 		thumbnailURL = """http://skyservice.pha.jhu.edu/DR7/ImgCutout/getjpeg.aspx?ra={}&dec={}&scale=0.40&width=120&height=120&opt=""".format(ra, dec)
@@ -56,7 +56,7 @@ def generate_webpage_of_results(rec_array, filename):
 
 
 
-def generate_webpage_of_results2(rec_array, filename):
+def make_thumbnail_webpage2(rec_array, filename):
 
 	def make_DR7_a_tag(ra, dec):
 		thumbnailURL = """http://skyservice.pha.jhu.edu/DR7/ImgCutout/getjpeg.aspx?ra={}&dec={}&scale=0.40&width=120&height=120&opt=""".format(ra, dec)
@@ -99,7 +99,7 @@ def generate_webpage_of_results2(rec_array, filename):
 
 
 
-
-recarray = np.recfromcsv('combined.csv')[:50]
-#print xml.dom.minidom.parseString(generate_webpage_of_results2(recarray, None)).toprettyxml()
-generate_webpage_of_results(recarray, 'test_webpage.html')
+if __name__ == "__main__":
+	recarray = np.recfromcsv('combined.csv')[:50]
+	#print xml.dom.minidom.parseString(generate_webpage_of_results2(recarray, None)).toprettyxml()
+	make_thumbnail_webpage(recarray, 'test_webpage.html')
