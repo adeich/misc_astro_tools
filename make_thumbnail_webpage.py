@@ -2,8 +2,8 @@ import numpy as np
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
-# generate a local webpage for allowing visual inspection of thumbnails.
-def make_thumbnail_webpage(rec_array, filename):
+# generate an html file for allowing visual inspection of thumbnails.
+def make_thumbnail_webpage(rec_array, output_filename):
 
 	def make_DR7_a_tag(ra, dec):
 		thumbnailURL = """http://skyservice.pha.jhu.edu/DR7/ImgCutout/getjpeg.aspx?ra={}&dec={}&scale=0.40&width=120&height=120&opt=""".format(ra, dec)
@@ -19,7 +19,7 @@ def make_thumbnail_webpage(rec_array, filename):
 			tag = '<th>{}</th>'.format(content_string)
 		return tag 
 
-	with open(filename, 'w') as f:
+	with open(output_filename, 'w') as f:
     # intro HTML.
 		f.write("<html><head>")
 		f.write('<script type="text/javascript" src="http://spg.ucolick.org/tablesorter/jquery-latest.js"></script>')
@@ -52,11 +52,11 @@ def make_thumbnail_webpage(rec_array, filename):
     # Ending HTML.
 		f.write("""</tbody></table></body></html>""")
 
-		print "HTML document with thumbnails created: {}".format(filename)
+		print "HTML document with thumbnails created: {}".format(output_filename)
 
 
-
-def make_thumbnail_webpage2(rec_array, filename):
+# The future version of this function, using a proper xml constructor.
+def make_thumbnail_webpage_future(rec_array, filename):
 
 	def make_DR7_a_tag(ra, dec):
 		thumbnailURL = """http://skyservice.pha.jhu.edu/DR7/ImgCutout/getjpeg.aspx?ra={}&dec={}&scale=0.40&width=120&height=120&opt=""".format(ra, dec)
