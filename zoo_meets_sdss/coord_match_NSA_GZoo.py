@@ -92,11 +92,8 @@ def get_data_from_csv(input_filename=None, column_names=None, write_to_csv_name=
 	return output_array 
 	
 
-
-# returns array containing, for each object in NSA, index of closest object in GZoo;
-# also respective angular separation. 
-# For each object in match_rec, this function gives a pointer to the nearest object
-#  in catalog_rec.
+# For each object in "match" (ra/dec), a corresponding line in the output array should 
+# point to the index of the nearest object in "catalog" (ra/dec).
 def match_coordinates(catalog_ra, catalog_dec, match_ra, match_dec):
  	
 	print 'matching coordinates ... '  
