@@ -172,4 +172,5 @@ def look_at_matches():
 #GZoo_cat, NSA_cat = make_catalogs()	
 
 if __name__ == '__main__':
-	GZoo_cat, NSA_cat = make_catalogs()	
+	#GZoo_cat, NSA_cat = make_catalogs()	
+	look_at_matches()

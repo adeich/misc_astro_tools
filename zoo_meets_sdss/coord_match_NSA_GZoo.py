@@ -1,6 +1,8 @@
 from astropy.io import fits
 from astropy.coordinates import match_coordinates_sky
+from astropy.coordinates import search_around_sky 
 from astropy.coordinates import SkyCoord
+import astropy.coordinates
 from astropy import units as u
 import numpy as np
 import quick_plot 
@@ -94,8 +96,11 @@ def get_data_from_csv(input_filename=None, column_names=None, write_to_csv_name=
 
 # For each object in "match" (ra/dec), a corresponding line in the output array should 
 # point to the index of the nearest object in "catalog" (ra/dec).
-def match_coordinates(catalog_ra, catalog_dec, match_ra, match_dec):
+def match_coordinates_original(ra_1, dec_1, ra_2, dec_2, max_arcsec_sep=10):
  	
+	catalog_ra = ra_1; catalog_dec = dec_1
+	match_ra = ra_2; match_dec = dec_2
+
 	print 'matching coordinates ... '  
 	catalogcoord = SkyCoord(ra=catalog_ra* u.degree, dec=catalog_dec * u.degree)
 	matchcoord = SkyCoord(ra=match_ra * u.degree, 
@@ -114,6 +119,60 @@ def match_coordinates(catalog_ra, catalog_dec, match_ra, match_dec):
 	
 	print '\tdone.'
 	return nearest_catalog_obj_pointers
+
+
+
+# For each object in "match" (ra/dec), a corresponding line in the output array should 
+# point to the index of the nearest object in "catalog" (ra/dec).
+def match_coordinates_1by1(ra_1, dec_1, ra_2, dec_2, max_arcsec_sep=10):
+ 	
+	catalog_ra = ra_1; catalog_dec = dec_1
+	match_ra = ra_2; match_dec = dec_2
+
+	print 'matching coordinates ... '  
+	catalogcoord = SkyCoord(ra=catalog_ra* u.degree, dec=catalog_dec * u.degree)
+
+	indices_into_catalog = []
+	for ra, dec in zip(match_ra, match_dec): 
+		matchcoord = SkyCoord(ra=ra * u.degree, 
+    	dec=dec * u.degree)
+		indices_into_catalog, sep2d, dist3d = match_coordinates_sky(matchcoord, catalogcoord, storekdtree=True)
+		indices_into_catalog.append([indices_into_catalog, sep2d.arcsecond])
+
+
+	# Combine these two arrays into a 2D array.
+	nearest_catalog_obj_pointers = np.rec.fromarrays((indices_into_catalog, sep2d_array), 
+		dtype=[('index_into_catalog', int),('DEICH_match_arcsec', float)])
+	
+	print '\tdone.'
+	return nearest_catalog_obj_pointers
+
+
+
+
+# For each object in "match" (ra/dec), a corresponding line in the output array should 
+# point to the index of the nearest object in "catalog" (ra/dec).
+def match_coordinates(ra_1, dec_1, ra_2, dec_2, max_arcsec_sep=100):
+ 	
+	print 'matching coordinates ... '  
+	coordinates1 = SkyCoord(ra=ra_1 * u.degree, dec=dec_1 * u.degree)
+	coordinates2 = SkyCoord(ra=ra_2 * u.degree, 
+    dec=dec_2 * u.degree)
+	#max_sep_angle = astropy.coordinates.Angle('0d0m{}s'.format(max_arcsec_sep))
+	max_sep_angle = astropy.units.Quantity(value=max_arcsec_sep, unit=u.arcsecond)
+
+	indices_into_coord1, indices_into_coord2, sep2d, dist3d = search_around_sky(coordinates1, coordinates2, max_sep_angle)
+
+	# 1D array of angular distance of each NSA object to nearest GZoo neighbor (arcseconds).
+	sep2d_array = np.array(sep2d.arcsecond)
+	# 1D array, for each NSA object, index into GZoo of nearest object.
+
+	# Combine these two arrays into a 2D array.
+	nearest_coord1_obj_pointers = np.rec.fromarrays((np.array(indices_into_coord1), np.array(sep2d.arcsecond)), 
+		dtype=[('index_into_catalog', int),('DEICH_match_arcsec', float)])
+	
+	print '\tdone.'
+	return nearest_coord1_obj_pointers
 
 
 
@@ -154,8 +213,6 @@ def produce_combined_table(NSA_recarray, GZoo_recarray, NSA_to_GZoo_match_array,
 	return ''
 
 
-def make_new_NSA_fits_with_foreign_key():
-	pass
 
 def highest_level():
 
@@ -177,8 +234,8 @@ def highest_level():
 
 	# perform coordinate match. Use coordinate match only to assign DR8IDs or 
 	# whatever foreign key to all rows in NSA_defs.
-	nearest_GZoo_obj_pointers = match_coordinates(catalog_ra=GZoo_specified_column_data['ra'], catalog_dec=GZoo_specified_column_data['dec'],
-		match_ra=NSA_specified_column_data['RA'], match_dec=NSA_specified_column_data['DEC'])
+	nearest_GZoo_obj_pointers = match_coordinates_original(ra_1=GZoo_specified_column_data['ra'], dec_1=GZoo_specified_column_data['dec'],
+		ra_2=NSA_specified_column_data['RA'], dec_2=NSA_specified_column_data['DEC'])
 
 	#print '{} / {} matches have angle less than 1 arcsecond.'.format(len(matches), len(matched_coordinates_dict['sep2d']))
 #	quick_plot.quick_histogram(matched_coordinates_dict['sep2d'], title="angular separation of nearest neighbor",
